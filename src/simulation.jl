@@ -22,6 +22,7 @@ struct EventStreamProcess{T <: Real, L}
     maxtime :: T
     basis :: BSplineBasis
     memory ::T
+    λ_0 ::T
     other_kernels :: Array{Spline{BSplineBasis{Vector{T}}, Vector{T}}, 1}
     self_kernel :: Spline
 end
@@ -31,7 +32,7 @@ function other_intensity(p :: EventStreamProcess, t)
     could_influence = searchsorted(p.other_events, prevfloat(t), by=(tup) -> memorylengths_away(tup[1], t, p.memory))
     influences = [(t - e[1], label_order[e[2]]) for e in p.other_events[could_influence]]
     total_intensity = sum([p.other_kernels[infl[2]](infl[1]) for infl in influences])
-    return exp(total_intensity)
+    return total_intensity
 end
 
 
@@ -50,9 +51,10 @@ function rand(p :: EventStreamProcess, intensity_ub::Real)
             s - x > p.memory || break
             push!(influential_diffs, s - x)
         end
-        int_value = other_intensity(p, s) + sum(exp.(p.self_kernel.(influential_diffs)))
+        int_value = other_intensity(p, s) + sum(p.self_kernel.(influential_diffs))
+        int_value = p.λ_0 * exp.(int_value)
         if int_value > intensity_ub
-            @error "Intensity Upper Bound incorrectly specified: λ($s) = $int_value > $intensity_ub"
+            @warn "Intensity Upper Bound incorrectly specified: λ($s) = $int_value > $intensity_ub"
         end
         if d <= int_value/intensity_ub
             # accept with prop int_value/intensity_ub
@@ -75,7 +77,7 @@ function rand(p :: HawkesProcess)
         s <=p.maxtime || break
         int_value = p.μ + sum(p.α .* exp.(-1*p.β*(s .- points)))
         if int_value > local_ub
-            @error "Intensity Upper Bound incorrectly specified: λ($s) = $int_value > $local_ub"
+            @warn "Intensity Upper Bound incorrectly specified: λ($s) = $int_value > $local_ub"
         end
         if d <= int_value/local_ub
             push!(points, s)

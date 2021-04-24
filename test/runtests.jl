@@ -27,7 +27,7 @@ using StatsFuns
     y_bin2 = u.<logitistic.(lp2)
     @testset DensePredConjGrad begin
         pp1 = DensePredConjGrad(X1)
-        rr1 = GLMResp(y_cts, Normal(), IdentityLink(),
+        rr1 = GLM.GlmResp(y_cts, Normal(), IdentityLink(),
              repeat([0.0], length(y_cts)), repeat([1.0], length(y_cts)))
         mod1 = GeneralizedLinearModel(rr1, pp1, false)
         fit!(mod1)
@@ -45,7 +45,7 @@ using StatsFuns
         @test sum(abs.(coef(mod2) - coef(mod0))) <= 0.0001
     end
     @testset EventStreamPredConjGrad begin
-        pp3 = EventStreamPredConjGrad(E)
+        pp3 = EventStreamPredConjGrad(X2)
         rr3 = GLMResp(y_cts2, Normal(), LogitLink, 
             repeat([0.0], length(y_cts2)), repeat([1.0], length(y_cts2)))
         mod3 = GeneralizedLinearModel(rr3, pp3, false)
@@ -64,8 +64,9 @@ using StatsFuns
         self_coefs = randn(length(basis))
         other_kernels = [Spline(basis, c) for c in other_coefs]
         self_kernel = Spline(basis, self_coefs)
+        λ_0 = 0.4
         P1 = EventStreamProcess(eventstream, ["a", "b"], 10000.0, 
-            basis, 200.0, other_kernels, self_kernel)
+            basis, 200.0, λ_0, other_kernels, self_kernel)
     end
 
 end

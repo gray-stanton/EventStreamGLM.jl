@@ -4,6 +4,7 @@ using EventStreamGLM
 using YAML
 using BSplines
 
+import Random: seed!
 function parse_commandline()
     s = ArgParseSettings()
 
@@ -26,6 +27,10 @@ function parse_commandline()
             help="Upper bound for self-point intensity"
             default=10.0
             arg_type=Float64
+        "--seed"
+            help="RNG seed"
+            default=534
+            arg_type=Int
         "--config"
             help="Path to YAML configuration file"
             default="./config.yaml"
@@ -40,6 +45,7 @@ function main()
     for (arg,val) in args
         println("  $arg  =>  $val")
     end
+    seed!(args["seed"])
     conf = YAML.load_file(abspath(args["config"]))
     for (k, v) in pairs(conf)
         println("$k -> $v")
@@ -63,16 +69,22 @@ function main()
     other_kernels = [Spline(basis, q) for q in conf["other_coefs"]]
     self_kernel = Spline(basis, conf["self_coefs"])
 
-    proc = EventStreamProcess(eventstream, labels, args["maxtime"],basis, support(basis)[2], other_kernels, self_kernel)
+    proc = EventStreamProcess(eventstream, labels, args["maxtime"],basis, support(basis)[2], conf["lambda_0"], other_kernels, self_kernel)
     # Sample 
     for j in 1:args["nsims"]
-        fname = joinpath(args["outfolder"], "$(args["name"])_$j")
+        fname = joinpath(args["outfolder"], "$(args["name"])_$(j).yaml")
         println("Simulating $fname")
         outpoints = rand(proc, args["intensity_ub"])
-        out_data = Dict{String, Vector{Float64}}("nsources" => [length(labels)], "output" => outpoints)
+        out_data = Dict{String, Any}("nsources" => [length(labels)], "output" => outpoints)
         for l in labels
             out_data[l] = [e[1] for e in  eventstream if e[2] == l]
         end
+        # Locate some of the configuation data in each dataset.
+        out_data["maxtime"] = [args["maxtime"]]
+        out_data["true_other_coefs"] = conf["other_coefs"]
+        out_data["true_self_coefs"] = conf["self_coefs"]
+        out_data["breakpoints"] = conf["breakpoints"]
+        out_data["order"] = conf["order"]
         YAML.write_file(fname, out_data)
     end
 end
