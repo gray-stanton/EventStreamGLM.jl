@@ -66,7 +66,6 @@ using StatsFuns
         self_kernel = Spline(basis, self_coefs)
         P1 = EventStreamProcess(eventstream, ["a", "b"], 10000.0, 
             basis, 200.0, other_kernels, self_kernel)
-
     end
 
 end

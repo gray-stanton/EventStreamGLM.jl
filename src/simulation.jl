@@ -35,7 +35,7 @@ function other_intensity(p :: EventStreamProcess, t)
 end
 
 
-function rand(p :: EventStreamProcess, intensity_ub::Integer)
+function rand(p :: EventStreamProcess, intensity_ub::Real)
     # Hopefully can remove specification of intensity_ub, as difficult to specify
     # TODO: switch to Orgata, use fact that upper-bound for each spline is max(coefs)
     points = eltype(p.maxtime)[]
