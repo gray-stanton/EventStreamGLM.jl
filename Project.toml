@@ -1,0 +1,21 @@
+name = "EventStreamGLM"
+uuid = "34dd7b99-33e1-485a-b525-7cab589dccf9"
+authors = ["Gray Stanton <gray@graystanton.com> and contributors"]
+version = "0.1.0"
+
+[deps]
+BSplines = "488c2830-172b-11e9-1591-253b8a7df96d"
+EventStreamMatrix = "ce1006d9-cdbc-48b8-a20b-9e2022e5b95d"
+GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
+IterativeSolvers = "42fd0dbc-a981-5370-80f2-aaf504508153"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
