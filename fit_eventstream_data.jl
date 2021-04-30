@@ -55,19 +55,19 @@ function main()
             outpoints = dat["output"]
             δ = args["fineness"]
             nsources=convert(Int, dat["nsources"][1])
-            maxtime = convert(Int, dat["maxtime"][1])
+            maxtime = convert(Float64, dat["maxtime"][1])
             order = convert(Int, dat["order"][1])
             eventstream = Tuple{Float64, Int}[]
             labels = ["source_$i" for i in 1:nsources] 
             for (i, l) in enumerate(labels)
-                eventstream = vcat(eventstream, [(t, i) for t in dat[l]])
+                eventstream = vcat(eventstream, [(t, i) for t in dat[l]]) :: Vector{Tuple{Float64, Int}}
             end
             if args["include_lag"]
                 push!(labels, "response_lag")
                 # Lag by 
                 lag_resp = outpoints .+ δ 
                 filter!(t -> t<=maxtime, lag_resp)
-                eventstream = vcat(eventstream, [(t, "response_lag") for t in lag_resp])
+                eventstream = vcat(eventstream, [(t, nsources + 1) for t in lag_resp])
             end
             sort!(eventstream)
             
