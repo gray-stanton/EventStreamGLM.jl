@@ -33,7 +33,7 @@ mutable struct EventStreamPredConjGrad{T, L} <: LinPred
     end
 end
 
-EventStreamPredConjGrad(E :: AbstractEventStreamMatrix) = EventStreamPredConjGrad{fineness(E), eltype(E.labels)}(E)
+EventStreamPredConjGrad(E :: AbstractEventStreamMatrix) = EventStreamPredConjGrad{eltype(fineness(E)), eltype(E.labels)}(E)
 
 
 mutable struct DensePredConjGrad{T<:BlasReal} <: DensePred
@@ -42,21 +42,22 @@ mutable struct DensePredConjGrad{T<:BlasReal} <: DensePred
     delbeta :: Vector{T}
     scratchbeta :: Vector{T}
     control :: CGControl
+    intercept :: Bool
     function DensePredConjGrad{T}(X::Matrix{T}, beta0::Vector{T}, cntrl::CGControl) where T
         n, p = size(X)
         length(beta0) == p || throw(DimensionMismatch("length(β0) ≠ size(X,2)"))
-        new{T}(X, beta0, zeros(eltype(X),p), zeros(eltype(X),p), cntrl)
+        new{T}(X, beta0, zeros(eltype(X),p), zeros(eltype(X),p), cntrl, true)
     end
     function DensePredConjGrad{T}(X::Matrix{T}, beta0::Vector{T}) where T
         n, p = size(X)
         length(beta0) == p || throw(DimensionMismatch("length(β0) ≠ size(X,2)"))
         cntrl = CGControl(zero(real(eltype(X))), sqrt(eps(real(eltype(X)))), size(X, 2), false, false, Identity())
-        new{T}(X, beta0, zeros(eltype(X),p), zeros(eltype(X),p), cntrl)
+        new{T}(X, beta0, zeros(eltype(X),p), zeros(eltype(X),p), cntrl, true)
     end
     function DensePredConjGrad{T}(X::Matrix{T}) where T
         n, p = size(X)
         cntrl = CGControl(zero(real(eltype(X))), sqrt(eps(real(eltype(X)))), size(X, 2), false, false, Identity())
-        new{T}(X, zeros(eltype(X), p), zeros(eltype(X),p), zeros(eltype(X),p), cntrl)
+        new{T}(X, zeros(eltype(X), p), zeros(eltype(X),p), zeros(eltype(X),p), cntrl, true)
     end
 end
 
@@ -97,7 +98,7 @@ function delbeta!(p :: EventStreamPredConjGrad{T, L}, r :: Vector{T}, wt :: Vect
 end 
  
 function delbeta!(p :: DensePredConjGrad{T}, r :: Vector{T}, wt::Vector{T}) where T <: BlasReal
-    p.delbeta = cg((p.X)'*diagm(wt) *(p.X), (p.X)'*diagm(wt) * r; 
+    p.delbeta = cg((p.X)'*Diagonal(wt) *(p.X), (p.X)'*Diagonal(wt) * r; 
         abstol=p.control.abstol,
         reltol=p.control.reltol,
         maxiter=p.control.maxiter,

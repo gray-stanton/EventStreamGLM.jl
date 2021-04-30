@@ -55,12 +55,12 @@ function main()
     labels = ["source_$i" for i in 1:conf["inputnum"]] :: Vector{String}
     basis = BSplineBasis(order, breakpoints)
     # generate input events, one of ("homogpois")
-    eventstream = Tuple{Float64, String}[]
+    eventstream = Tuple{Float64, Int}[]
     if conf["input_type"] == "homogpois"
         for (j, intensity) in enumerate(conf["input_intensity"])
             P = HomogPoissonProcess(intensity, args["maxtime"])
             points = rand(P)
-            evns = [(t, labels[j]) for t in points] :: Vector{Tuple{Float64, String}}
+            evns = [(t, j) for t in points] :: Vector{Tuple{Float64, Int}}
             eventstream = vcat(eventstream, evns)
         end
     end
@@ -76,8 +76,8 @@ function main()
         println("Simulating $fname")
         outpoints = rand(proc)
         out_data = Dict{String, Any}("nsources" => [length(labels)], "output" => outpoints)
-        for l in labels
-            out_data[l] = [e[1] for e in  eventstream if e[2] == l]
+        for (j,l) in enumerate(labels)
+            out_data[l] = [e[1] for e in eventstream if e[2] == j]
         end
         # Locate some of the configuation data in each dataset.
         out_data["maxtime"] = [args["maxtime"]]

@@ -27,6 +27,12 @@ function parse_commandline()
         "--include_lag"
             help="Whether or not to use response variable lagged by one bin as additional input"
             action=:store_true
+        "--dense"
+            help="Whether to use a dense design matrix representation"
+            action=:store_true
+        "--nonconj"
+            help="Whether to default to a non-CG fit"
+            action=:store_true
         "--fineness"
             help="Level of discretization to use"
             default=0.1
@@ -51,10 +57,10 @@ function main()
             nsources=convert(Int, dat["nsources"][1])
             maxtime = convert(Int, dat["maxtime"][1])
             order = convert(Int, dat["order"][1])
-            eventstream = Tuple{Float64, String}[]
+            eventstream = Tuple{Float64, Int}[]
             labels = ["source_$i" for i in 1:nsources] 
-            for l in labels
-                eventstream = vcat(eventstream, [(t, l) for t in dat[l]])
+            for (i, l) in enumerate(labels)
+                eventstream = vcat(eventstream, [(t, i) for t in dat[l]])
             end
             if args["include_lag"]
                 push!(labels, "response_lag")
@@ -67,14 +73,20 @@ function main()
             
             # Construct  data
             basis = BSplineBasis(dat["order"], dat["breakpoints"])
-            E = FirstOrderBSplineEventStreamMatrix(eventstream, labels, δ, maxtime, order, dat["breakpoints"])
+            E = FirstOrderBSplineEventStreamMatrix(eventstream, labels, δ, maxtime, order, dat["breakpoints"], true)
             y_es = IdentityEventStreamVector(outpoints, δ, maxtime)
             y = Vector(y_es)
             y = y .>= 1 ## For binary response
 
             # Construct GLM
             cntrl = CGControl(0.001, 0.001, 40, false, true, Identity())
-            pp = EventStreamPredConjGrad{Float64, String}(E, zeros(Float64, size(E)[2]), cntrl)
+            if args["dense"] && !args["nonconj"]
+                pp=DensePredConjGrad{Float64}(hcat(ones(Float64, size(E)[1]),Matrix(E)), zeros(Float64, size(E)[2]+1) , cntrl)
+            elseif !args["dense"] && !args["nonconj"]
+                pp = EventStreamPredConjGrad{Float64, String}(E, zeros(Float64, size(E)[2]), cntrl)
+            else
+                pp = GLM.DensePredChol(hcat(ones(Float64, size(E)[1]), Matrix(E)), false)
+            end
             rr = GLM.GlmResp(y, Binomial(), LogitLink(), repeat([0.0], length(y)), repeat([1.0], length(y)))
             mod = GeneralizedLinearModel(rr, pp, false)
 

@@ -27,6 +27,7 @@ struct EventStreamProcess{T <: Real, L}
     self_kernel :: Spline
 end
 
+
 function other_intensity(p :: EventStreamProcess, t)
     label_order = Dict(l => i for (i, l) in enumerate(p.labels))
     could_influence = searchsorted(p.other_events, prevfloat(t), by=(tup) -> memorylengths_away(tup[1], t, p.memory))

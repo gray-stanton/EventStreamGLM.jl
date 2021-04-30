@@ -27,7 +27,6 @@ using IterativeSolvers
 using LinearAlgebra
 using StatsFuns
 using BSplines
-using DataStructures
 
 
 greet() = "Damns"

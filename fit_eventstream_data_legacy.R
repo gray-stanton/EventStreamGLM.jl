@@ -1,4 +1,4 @@
-ibrary(yaml)
+library(yaml)
 library(dplyr)
 library(bdmiso)
 library(bdglm)
@@ -30,7 +30,7 @@ for(file in dir(inpath)){
     breakpoints <- dat$breakpoints
     
     mspikes_o <- miso.spikes(dat$output, timeticks)
-    mspikes <- lapply(1:dat$nsources, function(i) miso.spikes(dat[[paste0("source_", i)]]))
+    mspikes <- lapply(1:dat$nsources, function(i) miso.spikes(dat[[paste0("source_", i)]], timeticks))
     spiketrain <- cbind(mspikes_o, bind_cols(mspikes))
       
     ninput <- dat$nsources + 1

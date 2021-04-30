@@ -1,4 +1,5 @@
 using EventStreamGLM
+using EventStreamMatrix
 using Test
 using LinearAlgebra
 using IterativeSolvers
@@ -8,23 +9,23 @@ using StatsFuns
 
 @testset "EventStreamGLM.jl" begin
     X1 = randn(1000, 10)
-    lp1 = 1.0*X[:, 1] + 2.0 * X[:, 2]
+    lp1 = 1.0*X1[:, 1] + 2.0 * X1[:, 2]
     y_cts = lp1 + randn(1000)./sqrt(2)
     u = rand(length(lp1))
     y_bin = u .<= logistic.(lp1)
     pp0 = GLM.DensePredChol(X1, false) # Base GLM fitting
-    rr0 = GLMResp(y_bin, Binomial(), LogitLink(), repeat([0.0], length(y_bin)), repeat([1.0], length(y_bin)))
-    mod0 = GeneralizedLinearModel(pp0, rr0, false)
+    rr0 = GLM.GlmResp(y_bin, Binomial(), LogitLink(), repeat([0.0], length(y_bin)), repeat([1.0], length(y_bin)))
+    mod0 = GeneralizedLinearModel(rr0, pp0, false)
     fit!(mod0)
     evnts = rand(Float64, 150)
-    labs = repeat(["a", "b"])
+    labs = repeat([1, 2], 75)
     eventstream = sort(collect(zip(evnts, labs)))
-    X2 = FirstOrderBSplineEventStreamMatrix(eventstream, ["a", "b"], 0.001, 1.0, 4, [0.0, 0.1, 0.2])
+    X2 = FirstOrderBSplineEventStreamMatrix(eventstream, ["a", "b"], 0.001, 1.0, 4, [0.0, 0.1, 0.2], true)
     Q  = Matrix(X2)
-    lp2 = 1.0*X2[:, 1] + 2.0*[:, 2]
+    lp2 = 1.0*Q[:, 1] + 2.0*Q[:, 2]
     y_cts2 = lp2 + randn(1000)./sqrt(2)
     u2 = rand(length(lp2))
-    y_bin2 = u.<logitistic.(lp2)
+    y_bin2 = u2.<logistic.(lp2)
     @testset DensePredConjGrad begin
         pp1 = DensePredConjGrad(X1)
         rr1 = GLM.GlmResp(y_cts, Normal(), IdentityLink(),
@@ -46,7 +47,7 @@ using StatsFuns
     end
     @testset EventStreamPredConjGrad begin
         pp3 = EventStreamPredConjGrad(X2)
-        rr3 = GLMResp(y_cts2, Normal(), LogitLink, 
+        rr3 = GLM.GlmResp(y_cts2, Normal(), IdentityLink(), 
             repeat([0.0], length(y_cts2)), repeat([1.0], length(y_cts2)))
         mod3 = GeneralizedLinearModel(rr3, pp3, false)
         fit!(mod3)
