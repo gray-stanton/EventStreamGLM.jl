@@ -56,17 +56,17 @@ using StatsFuns
         #TODO finish these tests
     end
     @testset simulation begin
-        basis = BSplineBasis(4, [0.0, 10.0, 20.0, 50.0, 100.0, 200.0])
-        other_events = 10000 .* rand(Float64, 1000)
-        labels = repeat(["a", "b"], 500)
+        basis = BSplineBasis(4, [0.0, 10.0, 20.0])
+        other_events = 100000 .* rand(Float64, 10000)
+        labels = repeat([1, 2], 5000)
         eventstream = sort(collect(zip(other_events, labels)))
-        other_coefs = [randn(length(basis)) for _ in 1:2]
+        other_coefs = [randn(length(basis))/4 for _ in 1:2]
         self_coefs = randn(length(basis))
         other_kernels = [Spline(basis, c) for c in other_coefs]
-        self_kernel = Spline(basis, self_coefs)
+        self_kernel = Spline(basis, min.(0, self_coefs))
         λ_0 = 0.4
-        P1 = EventStreamProcess(eventstream, ["a", "b"], 10000.0, 
-            basis, 200.0, λ_0, other_kernels, self_kernel)
+        P1 = EventStreamProcess(eventstream, ["a", "b"], 100000.0, 
+            basis, 20.0, λ_0, other_kernels, self_kernel)
     end
 
 end

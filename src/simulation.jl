@@ -17,7 +17,7 @@ end
 
 
 struct EventStreamProcess{T <: Real, L}
-    other_events :: Vector{Tuple{T, L}}
+    other_events :: Vector{Tuple{T, Int}}
     labels :: Vector{L}
     maxtime :: T
     basis :: BSplineBasis
@@ -36,6 +36,83 @@ function other_intensity(p :: EventStreamProcess, t)
 end
 
 
+function rand(p :: EventStreamProcess)
+    #relevant_spike_counts = zeros(length(p.labels) + 1)
+    points = eltype(p.maxtime)[]
+    kern_ubs = [max(0, maximum(spl.coeffs)) for spl in p.other_kernels]
+    self_ub = max(0, maximum(p.self_kernel.coeffs))
+    s=0.0
+    earliestmemevnt_idx = 1
+    rej_count=0
+    while s < p.maxtime
+        # compute intensity UB
+        intensity_ub = p.λ_0
+        intensity_ub_contribs = 0.0
+        next_event_time = p.maxtime
+        for (e, n) in view(p.other_events, earliestmemevnt_idx:length(p.other_events))
+            # increment by maximum possible impact of preceeding events
+            if e > s
+                next_event_time = e
+                break
+            end
+            intensity_ub_contribs += kern_ubs[n]
+        end
+        for selfp in Iterators.reverse(points)
+            s - selfp < p.memory || break
+            intensity_ub_contribs += self_ub
+        end
+        intensity_ub *= exp(intensity_ub_contribs)
+        #println("s: $s, earliestmem: $earliestmemevnt_idx")
+        u, d = rand(Float64, 2)
+        w = -log(u)/intensity_ub # Exponential with mean 1/intensity_ub
+        s = s + w
+        s <= p.maxtime || break
+        # If no sample until next event (which changes UB), then no need to reject/adopt
+        if s > next_event_time
+            s = next_event_time
+            #update index of earliest memory
+            for (e, n) in view(p.other_events, earliestmemevnt_idx:length(p.other_events))
+                if s- e > p.memory
+                    earliestmemevnt_idx +=1
+                else
+                    rej_count +=1
+                    break
+                end
+            end
+        else
+            other_infl = 0.0
+            for (e, n) in view(p.other_events, earliestmemevnt_idx:length(p.other_events))
+                if s - e > p.memory
+                    earliestmemevnt_idx += 1
+                    continue
+                end
+                e <= s || break
+                other_infl += p.other_kernels[n](s-e)
+            end
+            self_infl = 0.0
+            for selfp in Iterators.reverse(points)
+                s - selfp < p.memory || break
+                self_infl += p.self_kernel(s - selfp)
+            end
+            intensity = p.λ_0 * exp(other_infl + self_infl)
+            #println("s:$s  Intensity: $intensity, UB: $intensity_ub")
+            if intensity > intensity_ub +0.01
+                @warn "Intensity Upper bound is violated!"
+                return points
+            end
+            if d <= intensity/intensity_ub
+                push!(points, s)
+            else
+                rej_count +=1
+            end
+        end
+    end
+    println("$(length(points)/rej_count)")
+    return points
+end
+
+
+
 function rand(p :: EventStreamProcess, intensity_ub::Real)
     # Hopefully can remove specification of intensity_ub, as difficult to specify
     # TODO: switch to Orgata, use fact that upper-bound for each spline is max(coefs)
@@ -48,7 +125,7 @@ function rand(p :: EventStreamProcess, intensity_ub::Real)
         s <=p.maxtime || break
         influential_diffs = eltype(p.maxtime)[]
         for x in Iterators.reverse(points)
-            s - x > p.memory || break
+            s - x < p.memory || break
             push!(influential_diffs, s - x)
         end
         int_value = other_intensity(p, s) + sum(p.self_kernel.(influential_diffs))

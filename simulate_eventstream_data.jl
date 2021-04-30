@@ -74,7 +74,7 @@ function main()
     for j in 1:args["nsims"]
         fname = joinpath(args["outfolder"], "$(args["name"])_$(j).yaml")
         println("Simulating $fname")
-        outpoints = rand(proc, args["intensity_ub"])
+        outpoints = rand(proc)
         out_data = Dict{String, Any}("nsources" => [length(labels)], "output" => outpoints)
         for l in labels
             out_data[l] = [e[1] for e in  eventstream if e[2] == l]
