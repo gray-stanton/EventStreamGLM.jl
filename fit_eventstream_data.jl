@@ -4,6 +4,7 @@ using EventStreamGLM
 using YAML
 using GLM
 using BSplines
+import Dates: now
 
 import Random: seed!
 import IterativeSolvers: Identity
@@ -48,10 +49,12 @@ function main()
         println("  $arg  =>  $val")
     end
     seed!(args["seed"])
+    BLAS.set_num_threads(1)
     for file in readdir(abspath(args["infolder"]))
         if startswith(file, args["name"])
             println("Reading $file")
             dat = YAML.load_file(joinpath(abspath(args["infolder"]), file))
+            fittime_start = now()
             outpoints = dat["output"]
             δ = args["fineness"]
             nsources=convert(Int, dat["nsources"][1])
@@ -93,10 +96,13 @@ function main()
             # Fitting!
             print("Fitting $file")
             fit!(mod)
+            fittime_end = now()
+            fittime = Millisecond(fittime_end - fittime_start).value
 
             # Save output
             outdata = Dict{String, Vector{Float64}}("fineness" => [δ])
             outdata["coefs"] = coef(mod)
+            outdata["fittime"] = fittime
             YAML.write_file(joinpath(abspath(args["outfolder"], file)), outdata)
         end
     end

@@ -23,10 +23,10 @@ for(file in dir(inpath)){
     infile <- file.path(inpath, file)
     print(paste0("Reading ", infile))
     dat <- read_yaml(infile)
-    
+    fittime_start <- proc.time()[3]
     fineness <- args$fineness
     timeticks <- seq(0, dat$maxtime, by=fineness)
-    mem <- dat$breakpoints[length(dat$breakpoints)]
+    mem <- dat$breakpoints[length(dat$breakpoints)]/fineness
     breakpoints <- dat$breakpoints
     
     mspikes_o <- miso.spikes(dat$output, timeticks)
@@ -47,10 +47,11 @@ for(file in dir(inpath)){
     start = rep(0, ncol(x1))
     print(paste0("Fitting ", infile))
     res <- bdglm.fit(x1, y, family=binomial("logit"), start=start, intercept=FALSE, control=control)
+    fittime_end <- proc.time()[3]
+    fittime <- fittime_start - fittime_end * 1000 #defaults to seconds.
     # save output
-    out <- list(fineness=fineness, coefs = coef(res))
+    out <- list(fineness=fineness, coefs = coef(res), fittime=fittime)
     outfile <- file.path(path.expand(args$outfolder), file)
     write_yaml(out, outfile)
   }
 }
-
