@@ -4,6 +4,7 @@ using EventStreamGLM
 using YAML
 using BSplines
 
+import Dates: now, Millisecond
 import Random: seed!
 function parse_commandline()
     s = ArgParseSettings()
@@ -74,17 +75,20 @@ function main()
     for j in 1:args["nsims"]
         fname = joinpath(args["outfolder"], "$(args["name"])_$(j).yaml")
         println("Simulating $fname")
+        simtime_start = now()
         outpoints = rand(proc)
         out_data = Dict{String, Any}("nsources" => [length(labels)], "output" => outpoints)
         for (j,l) in enumerate(labels)
             out_data[l] = [e[1] for e in eventstream if e[2] == j]
         end
+        simtime_end = now()
         # Locate some of the configuation data in each dataset.
         out_data["maxtime"] = [args["maxtime"]]
         out_data["true_other_coefs"] = conf["other_coefs"]
         out_data["true_self_coefs"] = conf["self_coefs"]
         out_data["breakpoints"] = conf["breakpoints"]
         out_data["order"] = conf["order"]
+        out_data["simtime"] = Millisecond(simtime_start - simtime_end).value
         YAML.write_file(fname, out_data)
     end
 end

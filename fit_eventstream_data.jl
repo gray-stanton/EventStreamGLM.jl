@@ -4,7 +4,7 @@ using EventStreamGLM
 using YAML
 using GLM
 using BSplines
-import Dates: now
+import Dates: now, Millisecond
 
 import Random: seed!
 import IterativeSolvers: Identity

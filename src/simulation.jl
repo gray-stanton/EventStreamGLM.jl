@@ -46,6 +46,7 @@ function rand(p :: EventStreamProcess)
     earliestmemevnt_idx = 1
     rej_count=0
     while s < p.maxtime
+        flush(stdout)
         # compute intensity UB
         intensity_ub = p.λ_0
         intensity_ub_contribs = 0.0
@@ -63,6 +64,7 @@ function rand(p :: EventStreamProcess)
             intensity_ub_contribs += self_ub
         end
         intensity_ub *= exp(intensity_ub_contribs)
+        print("s: $s, ub:$intensity_ub   \r")
         #println("s: $s, earliestmem: $earliestmemevnt_idx")
         u, d = rand(Float64, 2)
         w = -log(u)/intensity_ub # Exponential with mean 1/intensity_ub

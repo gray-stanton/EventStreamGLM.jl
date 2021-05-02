@@ -31,14 +31,14 @@ for(file in dir(inpath)){
     
     mspikes_o <- miso.spikes(dat$output, timeticks)
     mspikes <- lapply(1:dat$nsources, function(i) miso.spikes(dat[[paste0("source_", i)]], timeticks))
-    spiketrain <- cbind(mspikes_o, bind_cols(mspikes))
+    spiketrain <- cbind(bind_cols(mspikes), mspikes_o)
       
     ninput <- dat$nsources + 1
     names(spiketrain)=c("response", paste0("source_",1:dat$nsources))
     
     knots <- breakpoints[-c(1, length(breakpoints))] # code auto-adds breakpoints at 0 and mem.
     
-    model.o1=miso.bspl.matrix.o1(spiketrain,mem,knots,degree = dat$order -1,output.index=1, d=fineness) 
+    model.o1=miso.bspl.matrix.o1(spiketrain,mem,knots,degree = dat$order -1,output.index=ninput, d=fineness) 
     y=as.numeric(miso.spikes(dat$output,timeticks,type="binary")[-c(1:(mem-1))])
     y <- y[1:nrow(model.o1$x)]
     
