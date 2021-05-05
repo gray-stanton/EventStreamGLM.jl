@@ -68,8 +68,8 @@ DensePredConjGrad(X::Matrix) = DensePredConjGrad{eltype(X)}(X)
 cholesky!(p::DensePredConjGrad) = cholesky(p.X'*p.X) 
 cholesky(p::DensePredConjGrad) = cholesky(p.X'*p.X) 
 
-cholesky(p :: EventStreamPredConjGrad) = cholesky(Hermitian(XtWX(p.X, ones(p.X.nbins))))
-cholesky!(p :: EventStreamPredConjGrad) = cholesky(Hermitian(XtWX(p.X, ones(p.X.nbins))))
+cholesky(p :: EventStreamPredConjGrad) = Identity() #cholesky(Hermitian(XtWX(p.X, ones(p.X.nbins))))
+cholesky!(p :: EventStreamPredConjGrad) = Identity() #cholesky(Hermitian(XtWX(p.X, ones(p.X.nbins))))
 
 # Standard errors are way off
 invchol(p :: EventStreamPredConjGrad) = inv(cholesky(p))
@@ -98,7 +98,8 @@ function delbeta!(p :: EventStreamPredConjGrad{T, L}, r :: Vector{T}, wt :: Vect
 end 
  
 function delbeta!(p :: DensePredConjGrad{T}, r :: Vector{T}, wt::Vector{T}) where T <: BlasReal
-    p.delbeta = cg((p.X)'*Diagonal(wt) *(p.X), (p.X)'*Diagonal(wt) * r; 
+    G = WeightedNormGramMatrix(p.X, wt)
+    p.delbeta = cg(G, G.X' * Diagonal(wt) * r ; 
         abstol=p.control.abstol,
         reltol=p.control.reltol,
         maxiter=p.control.maxiter,

@@ -46,7 +46,6 @@ function main()
     for (arg,val) in args
         println("  $arg  =>  $val")
     end
-    seed!(args["seed"])
     conf = YAML.load_file(abspath(args["config"]))
     for (k, v) in pairs(conf)
         println("$k -> $v")
@@ -73,6 +72,7 @@ function main()
     proc = EventStreamProcess(eventstream, labels, args["maxtime"],basis, support(basis)[2], conf["lambda_0"], other_kernels, self_kernel)
     # Sample 
     for j in 1:args["nsims"]
+        seed!(args["seed"]+j)
         fname = joinpath(args["outfolder"], "$(args["name"])_$(j).yaml")
         println("Simulating $fname")
         simtime_start = now()

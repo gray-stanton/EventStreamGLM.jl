@@ -1,6 +1,7 @@
 using ArgParse
 using EventStreamMatrix
 using EventStreamGLM
+using LinearAlgebra
 using YAML
 using GLM
 using BSplines
@@ -38,6 +39,10 @@ function parse_commandline()
             help="Level of discretization to use"
             default=0.1
             arg_type=Float64
+        "--breakafter"
+            help="Early stopping on file number"
+            default=1000
+            arg_type=Int
     end
     return parse_args(s)
 end
@@ -50,7 +55,11 @@ function main()
     end
     seed!(args["seed"])
     BLAS.set_num_threads(1)
+    q=1
     for file in readdir(abspath(args["infolder"]))
+        if q > args["breakafter"]
+            break
+        end
         if startswith(file, args["name"])
             println("Reading $file")
             dat = YAML.load_file(joinpath(abspath(args["infolder"]), file))
@@ -84,17 +93,17 @@ function main()
             # Construct GLM
             cntrl = CGControl(0.001, 0.001, 40, false, true, Identity())
             if args["dense"] && !args["nonconj"]
-                pp=DensePredConjGrad{Float64}(hcat(ones(Float64, size(E)[1]),Matrix(E)), zeros(Float64, size(E)[2]+1) , cntrl)
+                pp=DensePredConjGrad{Float64}(Matrix(E), zeros(Float64, size(E)[2]+1) , cntrl)
             elseif !args["dense"] && !args["nonconj"]
                 pp = EventStreamPredConjGrad{Float64, String}(E, zeros(Float64, size(E)[2]), cntrl)
             else
-                pp = GLM.DensePredChol(hcat(ones(Float64, size(E)[1]), Matrix(E)), false)
+                pp = GLM.DensePredChol(Matrix(E), false)
             end
             rr = GLM.GlmResp(y, Binomial(), LogitLink(), repeat([0.0], length(y)), repeat([1.0], length(y)))
             mod = GeneralizedLinearModel(rr, pp, false)
 
             # Fitting!
-            print("Fitting $file")
+            println("Fitting $file")
             fit!(mod)
             fittime_end = now()
             fittime = Millisecond(fittime_end - fittime_start).value
@@ -102,8 +111,9 @@ function main()
             # Save output
             outdata = Dict{String, Vector{Float64}}("fineness" => [δ])
             outdata["coefs"] = coef(mod)
-            outdata["fittime"] = fittime
+            outdata["fittime"] = [fittime]
             YAML.write_file(joinpath(abspath(args["outfolder"], file)), outdata)
+            q+=1
         end
     end
 end
