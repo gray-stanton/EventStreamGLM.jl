@@ -93,7 +93,7 @@ function main()
             # Construct GLM
             cntrl = CGControl(0.001, 0.001, 40, false, true, Identity())
             if args["dense"] && !args["nonconj"]
-                pp=DensePredConjGrad{Float64}(Matrix(E), zeros(Float64, size(E)[2]+1) , cntrl)
+                pp=DensePredConjGrad{Float64}(Matrix(E), zeros(Float64, size(E)[2]) , cntrl)
             elseif !args["dense"] && !args["nonconj"]
                 pp = EventStreamPredConjGrad{Float64, String}(E, zeros(Float64, size(E)[2]), cntrl)
             else
